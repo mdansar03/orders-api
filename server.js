@@ -7,7 +7,7 @@ const ordersRoutes = require('./routes/orders');
 const orderDetailsRoutes = require('./routes/order-details');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3008;
 
 // CORS configuration - allow all origins for easy deployment
 app.use(cors({
