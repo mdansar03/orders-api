@@ -48,7 +48,8 @@ const mockOrderDetails = {
         },
         method: 'Standard Shipping',
         cost: 5.99,
-        trackingNumber: 'TRK123456789'
+        trackingNumber: 'TRK123456789',
+        deliveryId: 'DEL-001'
       },
       payment: {
         method: 'Credit Card',
@@ -93,7 +94,8 @@ const mockOrderDetails = {
         },
         method: 'Express Shipping',
         cost: 12.99,
-        trackingNumber: 'TRK987654321'
+        trackingNumber: 'TRK987654321',
+        deliveryId: 'DEL-002'
       },
       payment: {
         method: 'PayPal',
@@ -145,7 +147,8 @@ const mockOrderDetails = {
         },
         method: 'Standard Shipping',
         cost: 5.99,
-        trackingNumber: null
+        trackingNumber: null,
+        deliveryId: 'DEL-003'
       },
       payment: {
         method: 'Credit Card',
@@ -190,7 +193,8 @@ const mockOrderDetails = {
         },
         method: 'Standard Shipping',
         cost: 5.99,
-        trackingNumber: 'TRK456789123'
+        trackingNumber: 'TRK456789123',
+        deliveryId: 'DEL-004'
       },
       payment: {
         method: 'Debit Card',
@@ -236,7 +240,8 @@ const mockOrderDetails = {
         },
         method: 'Standard Shipping',
         cost: 5.99,
-        trackingNumber: 'TRK-TEST-001'
+        trackingNumber: 'TRK-TEST-001',
+        deliveryId: 'DEL-005'
       },
       payment: {
         method: 'Credit Card',

@@ -5,6 +5,7 @@ require('dotenv').config();
 // Import routes
 const ordersRoutes = require('./routes/orders');
 const orderDetailsRoutes = require('./routes/order-details');
+const deliveryDetailsRoutes = require('./routes/delivery-details');
 
 const app = express();
 const PORT = process.env.PORT || 3008;
@@ -34,6 +35,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/orders', ordersRoutes);
 app.use('/api/order-details', orderDetailsRoutes);
+app.use('/api/delivery-details', deliveryDetailsRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -43,7 +45,10 @@ app.get('/', (req, res) => {
     endpoints: [
       'GET /health - Health check',
       'GET /api/orders/{userId} - Get orders for user',
-      'GET /api/order-details/{orderId} - Get order details'
+      'GET /api/order-details/{orderId} - Get order details',
+      'GET /api/delivery-details - Get all deliveries',
+      'GET /api/delivery-details/{deliveryId} - Get delivery details',
+      'GET /api/delivery-details/{deliveryId}/status - Get delivery status'
     ],
     timestamp: new Date().toISOString()
   });
@@ -74,6 +79,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`📋 Health check: http://localhost:${PORT}/health`);
   console.log(`📦 Orders API: http://localhost:${PORT}/api/orders/{userId}`);
   console.log(`📝 Order Details API: http://localhost:${PORT}/api/order-details/{orderId}`);
+  console.log(`🚚 Delivery Details API: http://localhost:${PORT}/api/delivery-details/{deliveryId}`);
 });
 
 // Graceful shutdown
