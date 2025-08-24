@@ -1,4 +1,5 @@
 const express = require('express');
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -84,7 +85,7 @@ const mockOrders = {
  * Get orders for a specific user
  * GET /api/orders/{userId}
  */
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
     

@@ -6,6 +6,7 @@ require('dotenv').config();
 const ordersRoutes = require('./routes/orders');
 const orderDetailsRoutes = require('./routes/order-details');
 const deliveryDetailsRoutes = require('./routes/delivery-details');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3008;
@@ -32,7 +33,10 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes
+// Authentication routes (no auth required for these)
+app.use('/api/auth', authRoutes);
+
+// Protected API routes (authentication required)
 app.use('/api/orders', ordersRoutes);
 app.use('/api/order-details', orderDetailsRoutes);
 app.use('/api/delivery-details', deliveryDetailsRoutes);
@@ -40,16 +44,30 @@ app.use('/api/delivery-details', deliveryDetailsRoutes);
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
-    message: 'Orders Service API',
+    message: 'Orders Service API with JWT Authentication',
     version: '1.0.0',
-    endpoints: [
-      'GET /health - Health check',
-      'GET /api/orders/{userId} - Get orders for user',
-      'GET /api/order-details/{orderId} - Get order details',
-      'GET /api/delivery-details - Get all deliveries',
-      'GET /api/delivery-details/{deliveryId} - Get delivery details',
-      'GET /api/delivery-details/{deliveryId}/status - Get delivery status'
-    ],
+    authentication: {
+      type: 'JWT Bearer Token',
+      header: 'Authorization: Bearer <your-jwt-token>',
+      loginEndpoint: 'POST /api/auth/login',
+      testUsersEndpoint: 'GET /api/auth/test-users'
+    },
+    endpoints: {
+      public: [
+        'GET /health - Health check',
+        'POST /api/auth/login - User authentication',
+        'POST /api/auth/verify - Token validation',
+        'GET /api/auth/test-users - Get test user credentials',
+        'POST /api/auth/logout - Logout (client-side token cleanup)'
+      ],
+      protected: [
+        'GET /api/orders/{userId} - Get orders for user (requires auth)',
+        'GET /api/order-details/{orderId} - Get order details (requires auth)',
+        'GET /api/delivery-details - Get all deliveries (requires auth)',
+        'GET /api/delivery-details/{deliveryId} - Get delivery details (requires auth)',
+        'GET /api/delivery-details/{deliveryId}/status - Get delivery status (requires auth)'
+      ]
+    },
     timestamp: new Date().toISOString()
   });
 });
