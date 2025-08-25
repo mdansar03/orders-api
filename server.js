@@ -7,6 +7,8 @@ const ordersRoutes = require('./routes/orders');
 const orderDetailsRoutes = require('./routes/order-details');
 const deliveryDetailsRoutes = require('./routes/delivery-details');
 const authRoutes = require('./routes/auth');
+const categoriesRoutes = require('./routes/categories');
+const productsRoutes = require('./routes/products');
 
 const app = express();
 const PORT = process.env.PORT || 3008;
@@ -40,6 +42,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/order-details', orderDetailsRoutes);
 app.use('/api/delivery-details', deliveryDetailsRoutes);
+app.use('/api/categories', categoriesRoutes);
+app.use('/api/products', productsRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -65,7 +69,12 @@ app.get('/', (req, res) => {
         'GET /api/order-details/{orderId} - Get order details (requires auth)',
         'GET /api/delivery-details - Get all deliveries (requires auth)',
         'GET /api/delivery-details/{deliveryId} - Get delivery details (requires auth)',
-        'GET /api/delivery-details/{deliveryId}/status - Get delivery status (requires auth)'
+        'GET /api/delivery-details/{deliveryId}/status - Get delivery status (requires auth)',
+        'GET /api/categories - Get all categories (requires auth)',
+        'GET /api/categories/{categoryId} - Get category by ID (requires auth)',
+        'POST /api/products - Get products with optional filters (requires auth)',
+        'GET /api/products/all - Get all products (requires auth)',
+        'GET /api/products/{productId} - Get product by ID (requires auth)'
       ]
     },
     timestamp: new Date().toISOString()
@@ -98,6 +107,8 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`📦 Orders API: http://localhost:${PORT}/api/orders/{userId}`);
   console.log(`📝 Order Details API: http://localhost:${PORT}/api/order-details/{orderId}`);
   console.log(`🚚 Delivery Details API: http://localhost:${PORT}/api/delivery-details/{deliveryId}`);
+  console.log(`🏷️  Categories API: http://localhost:${PORT}/api/categories`);
+  console.log(`📱 Products API: http://localhost:${PORT}/api/products (POST method)`);
 });
 
 // Graceful shutdown
