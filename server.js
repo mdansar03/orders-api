@@ -9,6 +9,7 @@ const deliveryDetailsRoutes = require('./routes/delivery-details');
 const authRoutes = require('./routes/auth');
 const categoriesRoutes = require('./routes/categories');
 const productsRoutes = require('./routes/products');
+const cartRoutes = require('./routes/cart');
 
 const app = express();
 const PORT = process.env.PORT || 3008;
@@ -38,6 +39,9 @@ app.get('/health', (req, res) => {
 // Authentication routes (no auth required for these)
 app.use('/api/auth', authRoutes);
 
+// Cart routes (no auth required)
+app.use('/api/cart', cartRoutes);
+
 // Protected API routes (authentication required)
 app.use('/api/orders', ordersRoutes);
 app.use('/api/order-details', orderDetailsRoutes);
@@ -62,7 +66,12 @@ app.get('/', (req, res) => {
         'POST /api/auth/login - User authentication',
         'POST /api/auth/verify - Token validation',
         'GET /api/auth/test-users - Get test user credentials',
-        'POST /api/auth/logout - Logout (client-side token cleanup)'
+        'POST /api/auth/logout - Logout (client-side token cleanup)',
+        'POST /api/cart - Add item to cart (no auth)',
+        'GET /api/cart/{userId} - Get cart items (no auth)',
+        'PUT /api/cart/{userId}/{productId} - Update item quantity (no auth)',
+        'DELETE /api/cart/{userId}/{productId} - Remove item from cart (no auth)',
+        'DELETE /api/cart/{userId} - Clear entire cart (no auth)'
       ],
       protected: [
         'GET /api/orders/{userId} - Get orders for user (requires auth)',
@@ -104,6 +113,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Orders Service running on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📋 Health check: http://localhost:${PORT}/health`);
+  console.log(`🛒 Cart API: http://localhost:${PORT}/api/cart (no auth)`);
   console.log(`📦 Orders API: http://localhost:${PORT}/api/orders/{userId}`);
   console.log(`📝 Order Details API: http://localhost:${PORT}/api/order-details/{orderId}`);
   console.log(`🚚 Delivery Details API: http://localhost:${PORT}/api/delivery-details/{deliveryId}`);
