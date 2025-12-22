@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticateToken } = require('../middleware/auth');
+// const { authenticateToken } = require('../middleware/auth'); // COMMENTED OUT - No auth required
 
 const router = express.Router();
 
@@ -264,7 +264,7 @@ const mockOrderDetails = {
  * Get detailed information for a specific order
  * GET /api/order-details/{orderId}
  */
-router.get('/:orderId', authenticateToken, async (req, res) => {
+router.get('/:orderId', /* authenticateToken, */ async (req, res) => {
   try {
     const { orderId } = req.params;
     

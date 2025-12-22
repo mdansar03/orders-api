@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticateToken } = require('../middleware/auth');
+// const { authenticateToken } = require('../middleware/auth'); // COMMENTED OUT - No auth required
 
 const router = express.Router();
 
@@ -176,7 +176,7 @@ const mockProducts = [
  *   "inStock": true // optional - filter by stock status
  * }
  */
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', /* authenticateToken, */ async (req, res) => {
   try {
     const { categoryName, inStock } = req.body || {};
     
@@ -239,7 +239,7 @@ router.post('/', authenticateToken, async (req, res) => {
  * Get all products (simple GET endpoint for convenience)
  * GET /api/products/all
  */
-router.get('/all', authenticateToken, async (req, res) => {
+router.get('/all', /* authenticateToken, */ async (req, res) => {
   try {
     logger.info('Fetching all products via GET endpoint');
     
@@ -268,7 +268,7 @@ router.get('/all', authenticateToken, async (req, res) => {
  * Get product by ID
  * GET /api/products/{productId}
  */
-router.get('/:productId', authenticateToken, async (req, res) => {
+router.get('/:productId', /* authenticateToken, */ async (req, res) => {
   try {
     const { productId } = req.params;
     

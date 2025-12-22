@@ -10,6 +10,10 @@ const authRoutes = require('./routes/auth');
 const categoriesRoutes = require('./routes/categories');
 const productsRoutes = require('./routes/products');
 const cartRoutes = require('./routes/cart');
+const hospitalsRoutes = require('./routes/hospitals');
+const doctorsRoutes = require('./routes/doctors');
+const appointmentsRoutes = require('./routes/appointments');
+const bookedAppointmentsRoutes = require('./routes/booked-appointments');
 
 const app = express();
 const PORT = process.env.PORT || 3008;
@@ -42,23 +46,31 @@ app.use('/api/auth', authRoutes);
 // Cart routes (no auth required)
 app.use('/api/cart', cartRoutes);
 
-// Protected API routes (authentication required)
+// Protected API routes (authentication required - currently commented out)
 app.use('/api/orders', ordersRoutes);
 app.use('/api/order-details', orderDetailsRoutes);
 app.use('/api/delivery-details', deliveryDetailsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/products', productsRoutes);
 
+// New medical/healthcare API routes (no auth required)
+app.use('/api/hospitals', hospitalsRoutes);
+app.use('/api/doctors', doctorsRoutes);
+app.use('/api/appointments', appointmentsRoutes);
+app.use('/api/booked-appointments', bookedAppointmentsRoutes);
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
-    message: 'Orders Service API with JWT Authentication',
+    message: 'Orders Service API with Medical/Healthcare APIs',
     version: '1.0.0',
+    note: 'Authentication has been commented out - all APIs are accessible without auth',
     authentication: {
-      type: 'JWT Bearer Token',
+      type: 'JWT Bearer Token (DISABLED)',
       header: 'Authorization: Bearer <your-jwt-token>',
       loginEndpoint: 'POST /api/auth/login',
-      testUsersEndpoint: 'GET /api/auth/test-users'
+      testUsersEndpoint: 'GET /api/auth/test-users',
+      status: 'COMMENTED OUT - No authentication required'
     },
     endpoints: {
       public: [
@@ -74,16 +86,39 @@ app.get('/', (req, res) => {
         'DELETE /api/cart/{userId} - Clear entire cart (no auth)'
       ],
       protected: [
-        'GET /api/orders/{userId} - Get orders for user (requires auth)',
-        'GET /api/order-details/{orderId} - Get order details (requires auth)',
-        'GET /api/delivery-details - Get all deliveries (requires auth)',
-        'GET /api/delivery-details/{deliveryId} - Get delivery details (requires auth)',
-        'GET /api/delivery-details/{deliveryId}/status - Get delivery status (requires auth)',
-        'GET /api/categories - Get all categories (requires auth)',
-        'GET /api/categories/{categoryId} - Get category by ID (requires auth)',
-        'POST /api/products - Get products with optional filters (requires auth)',
-        'GET /api/products/all - Get all products (requires auth)',
-        'GET /api/products/{productId} - Get product by ID (requires auth)'
+        'GET /api/orders/{userId} - Get orders for user (auth commented out)',
+        'GET /api/order-details/{orderId} - Get order details (auth commented out)',
+        'GET /api/delivery-details - Get all deliveries (auth commented out)',
+        'GET /api/delivery-details/{deliveryId} - Get delivery details (auth commented out)',
+        'GET /api/delivery-details/{deliveryId}/status - Get delivery status (auth commented out)',
+        'GET /api/categories - Get all categories (auth commented out)',
+        'GET /api/categories/{categoryId} - Get category by ID (auth commented out)',
+        'POST /api/products - Get products with optional filters (auth commented out)',
+        'GET /api/products/all - Get all products (auth commented out)',
+        'GET /api/products/{productId} - Get product by ID (auth commented out)'
+      ],
+      medical: [
+        'GET /api/hospitals - Get all hospitals (CRUD)',
+        'GET /api/hospitals/{hospitalId} - Get hospital by ID',
+        'POST /api/hospitals - Create new hospital',
+        'PUT /api/hospitals/{hospitalId} - Update hospital',
+        'DELETE /api/hospitals/{hospitalId} - Delete hospital',
+        'GET /api/doctors - Get all doctors (CRUD)',
+        'GET /api/doctors/{doctorId} - Get doctor by ID',
+        'POST /api/doctors - Create new doctor',
+        'PUT /api/doctors/{doctorId} - Update doctor',
+        'DELETE /api/doctors/{doctorId} - Delete doctor',
+        'GET /api/appointments - Get all appointments (CRUD)',
+        'GET /api/appointments/{appointmentId} - Get appointment by ID',
+        'POST /api/appointments - Book new appointment',
+        'PUT /api/appointments/{appointmentId} - Update appointment',
+        'DELETE /api/appointments/{appointmentId} - Cancel appointment',
+        'GET /api/booked-appointments - Get all booked appointments (CRUD)',
+        'GET /api/booked-appointments/{appointmentId} - Get booked appointment by ID',
+        'GET /api/booked-appointments/user/{userId} - Get appointments by user',
+        'PUT /api/booked-appointments/{appointmentId} - Update booked appointment',
+        'DELETE /api/booked-appointments/{appointmentId} - Cancel booked appointment',
+        'POST /api/booked-appointments/{appointmentId}/complete - Mark appointment as completed'
       ]
     },
     timestamp: new Date().toISOString()
@@ -119,6 +154,10 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚚 Delivery Details API: http://localhost:${PORT}/api/delivery-details/{deliveryId}`);
   console.log(`🏷️  Categories API: http://localhost:${PORT}/api/categories`);
   console.log(`📱 Products API: http://localhost:${PORT}/api/products (POST method)`);
+  console.log(`🏥 Hospitals API: http://localhost:${PORT}/api/hospitals`);
+  console.log(`👨‍⚕️ Doctors API: http://localhost:${PORT}/api/doctors`);
+  console.log(`📅 Appointments API: http://localhost:${PORT}/api/appointments`);
+  console.log(`✅ Booked Appointments API: http://localhost:${PORT}/api/booked-appointments`);
 });
 
 // Graceful shutdown

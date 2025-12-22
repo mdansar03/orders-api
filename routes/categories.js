@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticateToken } = require('../middleware/auth');
+// const { authenticateToken } = require('../middleware/auth'); // COMMENTED OUT - No auth required
 
 const router = express.Router();
 
@@ -55,7 +55,7 @@ const mockCategories = [
  * Get all categories
  * GET /api/categories
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', /* authenticateToken, */ async (req, res) => {
   try {
     logger.info('Fetching all categories');
     
@@ -81,7 +81,7 @@ router.get('/', authenticateToken, async (req, res) => {
  * Get category by ID
  * GET /api/categories/{categoryId}
  */
-router.get('/:categoryId', authenticateToken, async (req, res) => {
+router.get('/:categoryId', /* authenticateToken, */ async (req, res) => {
   try {
     const { categoryId } = req.params;
     

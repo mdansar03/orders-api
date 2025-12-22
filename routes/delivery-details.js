@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticateToken } = require('../middleware/auth');
+// const { authenticateToken } = require('../middleware/auth'); // COMMENTED OUT - No auth required
 
 const router = express.Router();
 
@@ -210,7 +210,7 @@ const mockDeliveryDetails = {
  * Get delivery details and status by delivery ID
  * GET /api/delivery-details/{deliveryId}
  */
-router.get('/:deliveryId', authenticateToken, async (req, res) => {
+router.get('/:deliveryId', /* authenticateToken, */ async (req, res) => {
   try {
     const { deliveryId } = req.params;
     
@@ -250,7 +250,7 @@ router.get('/:deliveryId', authenticateToken, async (req, res) => {
  * Get delivery status summary (lightweight endpoint)
  * GET /api/delivery-details/{deliveryId}/status
  */
-router.get('/:deliveryId/status', authenticateToken, async (req, res) => {
+router.get('/:deliveryId/status', /* authenticateToken, */ async (req, res) => {
   try {
     const { deliveryId } = req.params;
     
@@ -301,7 +301,7 @@ router.get('/:deliveryId/status', authenticateToken, async (req, res) => {
  * Get all deliveries (for testing purposes)
  * GET /api/delivery-details
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', /* authenticateToken, */ async (req, res) => {
   try {
     logger.info('Fetching all delivery summaries');
     
