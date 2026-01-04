@@ -4,6 +4,37 @@ const Doctor = require('../models/Doctor');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Doctor:
+ *       type: object
+ *       properties:
+ *         doctorId:
+ *           type: string
+ *         name:
+ *           type: string
+ *         specialty:
+ *           type: string
+ *         hospitalId:
+ *           type: string
+ *         hospitalName:
+ *           type: string
+ *         email:
+ *           type: string
+ *         phone:
+ *           type: string
+ *         experience:
+ *           type: number
+ *         rating:
+ *           type: number
+ *         consultationFee:
+ *           type: number
+ *         isActive:
+ *           type: boolean
+ */
+
 // Simple logger for standalone service
 const logger = {
   info: (message) => console.log(`[INFO] ${new Date().toISOString()} - ${message}`),
@@ -13,8 +44,23 @@ const logger = {
 };
 
 /**
- * Get all doctors
- * GET /api/doctors
+ * @swagger
+ * /doctors:
+ *   get:
+ *     summary: Get all doctors
+ *     tags: [Doctors]
+ *     parameters:
+ *       - in: query
+ *         name: specialty
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: hospitalId
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of doctors
  */
 router.get('/', async (req, res) => {
   try {
@@ -62,8 +108,22 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * Get doctor by ID
- * GET /api/doctors/:doctorId
+ * @swagger
+ * /doctors/{doctorId}:
+ *   get:
+ *     summary: Get doctor by ID
+ *     tags: [Doctors]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Doctor details
+ *       404:
+ *         description: Doctor not found
  */
 router.get('/:doctorId', async (req, res) => {
   try {

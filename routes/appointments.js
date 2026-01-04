@@ -4,6 +4,31 @@ const Appointment = require('../models/Appointment');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Appointment:
+ *       type: object
+ *       properties:
+ *         appointmentId:
+ *           type: string
+ *         userId:
+ *           type: string
+ *         doctorId:
+ *           type: string
+ *         hospitalId:
+ *           type: string
+ *         appointmentDate:
+ *           type: string
+ *           format: date-time
+ *         status:
+ *           type: string
+ *           enum: [scheduled, confirmed, completed, cancelled]
+ *         reason:
+ *           type: string
+ */
+
 // Simple logger for standalone service
 const logger = {
   info: (message) => console.log(`[INFO] ${new Date().toISOString()} - ${message}`),
@@ -13,8 +38,28 @@ const logger = {
 };
 
 /**
- * Get all appointments
- * GET /api/appointments
+ * @swagger
+ * /appointments:
+ *   get:
+ *     summary: Get all appointments
+ *     tags: [Appointments]
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: doctorId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: List of appointments
  */
 router.get('/', async (req, res) => {
   try {
@@ -73,8 +118,22 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * Get appointment by ID
- * GET /api/appointments/:appointmentId
+ * @swagger
+ * /appointments/{appointmentId}:
+ *   get:
+ *     summary: Get appointment by ID
+ *     tags: [Appointments]
+ *     parameters:
+ *       - in: path
+ *         name: appointmentId
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Appointment details
+ *       404:
+ *         description: Appointment not found
  */
 router.get('/:appointmentId', async (req, res) => {
   try {

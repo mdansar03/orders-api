@@ -4,6 +4,40 @@ const Hospital = require('../models/Hospital');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Hospital:
+ *       type: object
+ *       properties:
+ *         hospitalId:
+ *           type: string
+ *         name:
+ *           type: string
+ *         address:
+ *           type: object
+ *           properties:
+ *             street:
+ *               type: string
+ *             city:
+ *               type: string
+ *             state:
+ *               type: string
+ *             zipCode:
+ *               type: string
+ *             country:
+ *               type: string
+ *         specialties:
+ *           type: array
+ *           items:
+ *             type: string
+ *         rating:
+ *           type: number
+ *         isActive:
+ *           type: boolean
+ */
+
 // Simple logger for standalone service
 const logger = {
   info: (message) => console.log(`[INFO] ${new Date().toISOString()} - ${message}`),
@@ -13,8 +47,25 @@ const logger = {
 };
 
 /**
- * Get all hospitals
- * GET /api/hospitals
+ * @swagger
+ * /hospitals:
+ *   get:
+ *     summary: Get all hospitals
+ *     tags: [Hospitals]
+ *     parameters:
+ *       - in: query
+ *         name: specialty
+ *         schema:
+ *           type: string
+ *         description: Filter by medical specialty
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *         description: Filter by city
+ *     responses:
+ *       200:
+ *         description: List of hospitals
  */
 router.get('/', async (req, res) => {
   try {
@@ -62,8 +113,26 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * Get hospital by ID
- * GET /api/hospitals/:hospitalId
+ * @swagger
+ * /hospitals/{hospitalId}:
+ *   get:
+ *     summary: Get hospital by ID
+ *     tags: [Hospitals]
+ *     parameters:
+ *       - in: path
+ *         name: hospitalId
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Hospital details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Hospital'
+ *       404:
+ *         description: Hospital not found
  */
 router.get('/:hospitalId', async (req, res) => {
   try {

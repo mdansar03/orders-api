@@ -3,6 +3,54 @@ const Cart = require('../models/Cart');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     CartItem:
+ *       type: object
+ *       required:
+ *         - productId
+ *         - productName
+ *         - price
+ *         - quantity
+ *       properties:
+ *         productId:
+ *           type: string
+ *           description: The product ID
+ *         productName:
+ *           type: string
+ *           description: The product name
+ *         price:
+ *           type: number
+ *           description: Price per unit
+ *         quantity:
+ *           type: integer
+ *           description: Quantity of the product
+ *         image:
+ *           type: string
+ *           description: Product image URL
+ *         categoryId:
+ *           type: string
+ *           description: Category ID
+ *     Cart:
+ *       type: object
+ *       properties:
+ *         userId:
+ *           type: string
+ *           description: The user ID associated with the cart
+ *         items:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CartItem'
+ *         totalItems:
+ *           type: integer
+ *         totalQuantity:
+ *           type: integer
+ *         totalPrice:
+ *           type: number
+ */
+
 // Simple logger for standalone service
 const logger = {
   info: (message) => console.log(`[INFO] ${new Date().toISOString()} - ${message}`),
@@ -12,9 +60,44 @@ const logger = {
 };
 
 /**
- * Add item to cart
- * POST /api/cart
- * Body: { userId, productId, productName, price, quantity, image?, categoryId? }
+ * @swagger
+ * /cart:
+ *   post:
+ *     summary: Add an item to the cart
+ *     tags: [Cart]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - productId
+ *               - productName
+ *               - price
+ *               - quantity
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 example: user-001
+ *               productId:
+ *                 type: string
+ *                 example: prod-001
+ *               productName:
+ *                 type: string
+ *                 example: Smartphone X
+ *               price:
+ *                 type: number
+ *                 example: 999
+ *               quantity:
+ *                 type: integer
+ *                 example: 1
+ *     responses:
+ *       201:
+ *         description: Item added successfully
+ *       200:
+ *         description: Item quantity updated
  */
 router.post('/', async (req, res) => {
   try {
@@ -120,8 +203,27 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * Get cart items for a user
- * GET /api/cart/:userId
+ * @swagger
+ * /cart/{userId}:
+ *   get:
+ *     summary: Get cart items for a user
+ *     tags: [Cart]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The user ID
+ *     responses:
+ *       200:
+ *         description: Cart details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Cart'
+ *       404:
+ *         description: Cart not found
  */
 router.get('/:userId', async (req, res) => {
   try {
@@ -174,8 +276,27 @@ router.get('/:userId', async (req, res) => {
 });
 
 /**
- * Remove specific product from cart
- * DELETE /api/cart/:userId/:productId
+ * @swagger
+ * /cart/{userId}/{productId}:
+ *   delete:
+ *     summary: Remove a specific product from the cart
+ *     tags: [Cart]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         required: true
+ *       - in: path
+ *         name: productId
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Product removed successfully
+ *       404:
+ *         description: Cart or Product not found
  */
 router.delete('/:userId/:productId', async (req, res) => {
   try {
@@ -238,8 +359,20 @@ router.delete('/:userId/:productId', async (req, res) => {
 });
 
 /**
- * Clear entire cart for a user
- * DELETE /api/cart/:userId
+ * @swagger
+ * /cart/{userId}:
+ *   delete:
+ *     summary: Clear entire cart for a user
+ *     tags: [Cart]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Cart cleared successfully
  */
 router.delete('/:userId', async (req, res) => {
   try {

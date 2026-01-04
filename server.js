@@ -56,6 +56,12 @@ app.use('/api/delivery-details', deliveryDetailsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/products', productsRoutes);
 
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./config/swagger');
+
+// Serve Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+
 // New medical/healthcare API routes (no auth required)
 app.use('/api/hospitals', hospitalsRoutes);
 app.use('/api/doctors', doctorsRoutes);

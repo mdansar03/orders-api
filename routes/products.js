@@ -4,6 +4,29 @@ const Product = require('../models/Product');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Product:
+ *       type: object
+ *       properties:
+ *         productId:
+ *           type: string
+ *         productName:
+ *           type: string
+ *         price:
+ *           type: number
+ *         description:
+ *           type: string
+ *         categoryName:
+ *           type: string
+ *         inStock:
+ *           type: boolean
+ *         imageUrl:
+ *           type: string
+ */
+
 // Simple logger for standalone service
 const logger = {
   info: (message) => console.log(`[INFO] ${new Date().toISOString()} - ${message}`),
@@ -13,14 +36,24 @@ const logger = {
 };
 
 /**
- * Get products (using POST method as requested for testing)
- * POST /api/products
- * 
- * Request body can include:
- * {
- *   "categoryName": "Electronics" // optional - filter by category
- *   "inStock": true // optional - filter by stock status
- * }
+ * @swagger
+ * /products:
+ *   post:
+ *     summary: Get products with optional filtering
+ *     tags: [Products]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               categoryName:
+ *                 type: string
+ *               inStock:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: List of products matching criteria
  */
 router.post('/', /* authenticateToken, */ async (req, res) => {
   try {
@@ -81,8 +114,28 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
 });
 
 /**
- * Get all products (simple GET endpoint for convenience)
- * GET /api/products/all
+ * @swagger
+ * /products/all:
+ *   get:
+ *     summary: Get all active products
+ *     tags: [Products]
+ *     responses:
+ *       200:
+ *         description: List of all active products
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     products:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Product'
  */
 router.get('/all', /* authenticateToken, */ async (req, res) => {
   try {
@@ -111,8 +164,26 @@ router.get('/all', /* authenticateToken, */ async (req, res) => {
 });
 
 /**
- * Get product by ID
- * GET /api/products/{productId}
+ * @swagger
+ * /products/{productId}:
+ *   get:
+ *     summary: Get a product by ID
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Product details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Product'
+ *       404:
+ *         description: Product not found
  */
 router.get('/:productId', /* authenticateToken, */ async (req, res) => {
   try {
