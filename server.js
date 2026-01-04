@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+// Import database configuration
+const { connectDB } = require('./config/database');
+
 // Import routes
 const ordersRoutes = require('./routes/orders');
 const orderDetailsRoutes = require('./routes/order-details');
@@ -32,8 +35,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
+  res.json({
+    status: 'healthy',
     timestamp: new Date().toISOString(),
     service: 'orders-service',
     version: '1.0.0'
@@ -127,7 +130,7 @@ app.get('/', (req, res) => {
 
 // 404 handler
 app.use('*', (req, res) => {
-  res.status(404).json({ 
+  res.status(404).json({
     error: 'Route not found',
     path: req.originalUrl,
     method: req.method
@@ -137,42 +140,58 @@ app.use('*', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Internal server error',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
   });
 });
 
-// Start server
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Orders Service running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`📋 Health check: http://localhost:${PORT}/health`);
-  console.log(`🛒 Cart API: http://localhost:${PORT}/api/cart (no auth)`);
-  console.log(`📦 Orders API: http://localhost:${PORT}/api/orders/{userId}`);
-  console.log(`📝 Order Details API: http://localhost:${PORT}/api/order-details/{orderId}`);
-  console.log(`🚚 Delivery Details API: http://localhost:${PORT}/api/delivery-details/{deliveryId}`);
-  console.log(`🏷️  Categories API: http://localhost:${PORT}/api/categories`);
-  console.log(`📱 Products API: http://localhost:${PORT}/api/products (POST method)`);
-  console.log(`🏥 Hospitals API: http://localhost:${PORT}/api/hospitals`);
-  console.log(`👨‍⚕️ Doctors API: http://localhost:${PORT}/api/doctors`);
-  console.log(`📅 Appointments API: http://localhost:${PORT}/api/appointments`);
-  console.log(`✅ Booked Appointments API: http://localhost:${PORT}/api/booked-appointments`);
-});
+// Connect to MongoDB and start server
+const startServer = async () => {
+  try {
+    // Connect to MongoDB first
+    await connectDB();
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
-  });
-});
+    // Start Express server after successful DB connection
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Orders Service running on port ${PORT}`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`📋 Health check: http://localhost:${PORT}/health`);
+      console.log(`🛒 Cart API: http://localhost:${PORT}/api/cart (no auth)`);
+      console.log(`📦 Orders API: http://localhost:${PORT}/api/orders/{userId}`);
+      console.log(`📝 Order Details API: http://localhost:${PORT}/api/order-details/{orderId}`);
+      console.log(`🚚 Delivery Details API: http://localhost:${PORT}/api/delivery-details/{deliveryId}`);
+      console.log(`🏷️  Categories API: http://localhost:${PORT}/api/categories`);
+      console.log(`📱 Products API: http://localhost:${PORT}/api/products (POST method)`);
+      console.log(`🏥 Hospitals API: http://localhost:${PORT}/api/hospitals`);
+      console.log(`👨‍⚕️ Doctors API: http://localhost:${PORT}/api/doctors`);
+      console.log(`📅 Appointments API: http://localhost:${PORT}/api/appointments`);
+      console.log(`✅ Booked Appointments API: http://localhost:${PORT}/api/booked-appointments`);
+    });
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
-  });
-});
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM received, shutting down gracefully');
+      server.close(() => {
+        console.log('Process terminated');
+      });
+    });
+
+    process.on('SIGINT', () => {
+      console.log('SIGINT received, shutting down gracefully');
+      server.close(() => {
+        console.log('Process terminated');
+      });
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+// Only start the server if run directly
+if (require.main === module) {
+  startServer();
+}
 
 module.exports = app;

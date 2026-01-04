@@ -1,4 +1,5 @@
 const express = require('express');
+const Appointment = require('../models/Appointment');
 // const { authenticateToken } = require('../middleware/auth'); // COMMENTED OUT - No auth required
 
 const router = express.Router();
@@ -11,10 +12,6 @@ const logger = {
   debug: (message) => console.log(`[DEBUG] ${new Date().toISOString()} - ${message}`)
 };
 
-// In-memory storage for appointments (simulating database)
-let appointmentsStorage = [];
-let appointmentCounter = 1;
-
 /**
  * Get all appointments
  * GET /api/appointments
@@ -22,49 +19,49 @@ let appointmentCounter = 1;
 router.get('/', async (req, res) => {
   try {
     const { userId, doctorId, hospitalId, status, date } = req.query;
-    
+
     logger.info('Fetching appointments');
-    
-    let filteredAppointments = [...appointmentsStorage];
-    
-    // Filter by userId if provided
+
+    // Build query
+    const query = {};
+
     if (userId) {
-      filteredAppointments = filteredAppointments.filter(apt => apt.userId === userId);
+      query.userId = userId;
     }
-    
-    // Filter by doctorId if provided
+
     if (doctorId) {
-      filteredAppointments = filteredAppointments.filter(apt => apt.doctorId === doctorId);
+      query.doctorId = doctorId;
     }
-    
-    // Filter by hospitalId if provided
+
     if (hospitalId) {
-      filteredAppointments = filteredAppointments.filter(apt => apt.hospitalId === hospitalId);
+      query.hospitalId = hospitalId;
     }
-    
-    // Filter by status if provided
+
     if (status) {
-      filteredAppointments = filteredAppointments.filter(apt => apt.status === status);
+      query.status = status;
     }
-    
-    // Filter by date if provided
+
     if (date) {
-      filteredAppointments = filteredAppointments.filter(apt => {
-        const appointmentDate = new Date(apt.appointmentDate).toISOString().split('T')[0];
-        return appointmentDate === date;
-      });
+      // Filter by date (ignoring time)
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      query.appointmentDate = { $gte: startOfDay, $lte: endOfDay };
     }
-    
-    logger.info(`Found ${filteredAppointments.length} appointments`);
-    
+
+    const appointments = await Appointment.find(query).sort({ appointmentDate: 1 });
+
+    logger.info(`Found ${appointments.length} appointments`);
+
     res.json({
       success: true,
       data: {
-        appointments: filteredAppointments,
-        totalAppointments: filteredAppointments.length
+        appointments,
+        totalAppointments: appointments.length
       }
     });
-    
+
   } catch (error) {
     logger.error('Error fetching appointments:', error);
     res.status(500).json({
@@ -82,11 +79,11 @@ router.get('/', async (req, res) => {
 router.get('/:appointmentId', async (req, res) => {
   try {
     const { appointmentId } = req.params;
-    
+
     logger.info(`Fetching appointment: ${appointmentId}`);
-    
-    const appointment = appointmentsStorage.find(apt => apt.appointmentId === appointmentId);
-    
+
+    const appointment = await Appointment.findOne({ appointmentId });
+
     if (!appointment) {
       logger.warn(`Appointment not found: ${appointmentId}`);
       return res.status(404).json({
@@ -95,14 +92,14 @@ router.get('/:appointmentId', async (req, res) => {
         message: `Appointment with ID ${appointmentId} does not exist`
       });
     }
-    
+
     res.json({
       success: true,
       data: {
-        appointment: appointment
+        appointment
       }
     });
-    
+
   } catch (error) {
     logger.error('Error fetching appointment:', error);
     res.status(500).json({
@@ -119,29 +116,39 @@ router.get('/:appointmentId', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { userId, doctorId, hospitalId, appointmentDate, appointmentTime, reason, patientName, patientPhone, patientEmail } = req.body;
-    
+    const { userId, userName, doctorId, doctorName, hospitalId, hospitalName, appointmentDate, timeSlot, reason, notes, consultationFee } = req.body;
+
     // Validation
-    if (!userId || !doctorId || !hospitalId || !appointmentDate || !appointmentTime || !patientName || !patientPhone) {
+    if (!userId || !userName || !doctorId || !doctorName || !hospitalId || !appointmentDate || !timeSlot) {
       logger.warn('Book appointment failed: Missing required fields');
       return res.status(400).json({
         success: false,
         error: 'Missing required fields',
-        message: 'userId, doctorId, hospitalId, appointmentDate, appointmentTime, patientName, and patientPhone are required'
+        message: 'userId, userName, doctorId, doctorName, hospitalId, appointmentDate, and timeSlot are required'
       });
     }
-    
-    // Validate date format
-    const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}`);
-    if (isNaN(appointmentDateTime.getTime())) {
-      logger.warn('Book appointment failed: Invalid date/time format');
+
+    // Validate timeSlot structure
+    if (!timeSlot.startTime || !timeSlot.endTime) {
+      logger.warn('Book appointment failed: Invalid timeSlot format');
       return res.status(400).json({
         success: false,
-        error: 'Invalid date/time format',
-        message: 'appointmentDate and appointmentTime must be in valid format'
+        error: 'Invalid timeSlot format',
+        message: 'timeSlot must include startTime and endTime'
       });
     }
-    
+
+    // Validate date
+    const appointmentDateTime = new Date(appointmentDate);
+    if (isNaN(appointmentDateTime.getTime())) {
+      logger.warn('Book appointment failed: Invalid date format');
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid date format',
+        message: 'appointmentDate must be in valid format'
+      });
+    }
+
     // Check if appointment date is in the past
     if (appointmentDateTime < new Date()) {
       logger.warn('Book appointment failed: Appointment date is in the past');
@@ -151,31 +158,32 @@ router.post('/', async (req, res) => {
         message: 'Appointment date cannot be in the past'
       });
     }
-    
+
     // Generate new appointment ID
-    const appointmentId = `apt-${String(appointmentCounter++).padStart(6, '0')}`;
-    
-    const newAppointment = {
+    const count = await Appointment.countDocuments();
+    const appointmentId = `apt-${String(count + 1).padStart(6, '0')}`;
+
+    const newAppointment = new Appointment({
       appointmentId,
       userId,
+      userName,
       doctorId,
+      doctorName,
       hospitalId,
-      appointmentDate,
-      appointmentTime,
-      appointmentDateTime: appointmentDateTime.toISOString(),
+      hospitalName: hospitalName || 'Unknown Hospital',
+      appointmentDate: appointmentDateTime,
+      timeSlot,
       reason: reason || 'General consultation',
-      patientName,
-      patientPhone,
-      patientEmail: patientEmail || null,
+      notes: notes || '',
+      consultationFee: consultationFee || 0,
       status: 'scheduled',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    appointmentsStorage.push(newAppointment);
-    
+      paymentStatus: 'pending'
+    });
+
+    await newAppointment.save();
+
     logger.info(`Booked new appointment: ${appointmentId}`);
-    
+
     res.status(201).json({
       success: true,
       message: 'Appointment booked successfully',
@@ -183,7 +191,7 @@ router.post('/', async (req, res) => {
         appointment: newAppointment
       }
     });
-    
+
   } catch (error) {
     logger.error('Error booking appointment:', error);
     res.status(500).json({
@@ -202,12 +210,32 @@ router.put('/:appointmentId', async (req, res) => {
   try {
     const { appointmentId } = req.params;
     const updateData = req.body;
-    
+
     logger.info(`Updating appointment: ${appointmentId}`);
-    
-    const appointmentIndex = appointmentsStorage.findIndex(apt => apt.appointmentId === appointmentId);
-    
-    if (appointmentIndex === -1) {
+
+    // Prevent ID change
+    delete updateData.appointmentId;
+
+    // Validate date if provided
+    if (updateData.appointmentDate) {
+      const appointmentDateTime = new Date(updateData.appointmentDate);
+      if (isNaN(appointmentDateTime.getTime())) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid date format',
+          message: 'appointmentDate must be in valid format'
+        });
+      }
+      updateData.appointmentDate = appointmentDateTime;
+    }
+
+    const appointment = await Appointment.findOneAndUpdate(
+      { appointmentId },
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!appointment) {
       logger.warn(`Appointment not found: ${appointmentId}`);
       return res.status(404).json({
         success: false,
@@ -215,42 +243,17 @@ router.put('/:appointmentId', async (req, res) => {
         message: `Appointment with ID ${appointmentId} does not exist`
       });
     }
-    
-    // If date or time is being updated, validate and update appointmentDateTime
-    if (updateData.appointmentDate || updateData.appointmentTime) {
-      const appointmentDate = updateData.appointmentDate || appointmentsStorage[appointmentIndex].appointmentDate;
-      const appointmentTime = updateData.appointmentTime || appointmentsStorage[appointmentIndex].appointmentTime;
-      const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}`);
-      
-      if (isNaN(appointmentDateTime.getTime())) {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid date/time format',
-          message: 'appointmentDate and appointmentTime must be in valid format'
-        });
-      }
-      
-      updateData.appointmentDateTime = appointmentDateTime.toISOString();
-    }
-    
-    // Update appointment data
-    appointmentsStorage[appointmentIndex] = {
-      ...appointmentsStorage[appointmentIndex],
-      ...updateData,
-      appointmentId, // Prevent ID change
-      updatedAt: new Date().toISOString()
-    };
-    
+
     logger.info(`Updated appointment: ${appointmentId}`);
-    
+
     res.json({
       success: true,
       message: 'Appointment updated successfully',
       data: {
-        appointment: appointmentsStorage[appointmentIndex]
+        appointment
       }
     });
-    
+
   } catch (error) {
     logger.error('Error updating appointment:', error);
     res.status(500).json({
@@ -268,12 +271,16 @@ router.put('/:appointmentId', async (req, res) => {
 router.delete('/:appointmentId', async (req, res) => {
   try {
     const { appointmentId } = req.params;
-    
+
     logger.info(`Canceling appointment: ${appointmentId}`);
-    
-    const appointmentIndex = appointmentsStorage.findIndex(apt => apt.appointmentId === appointmentId);
-    
-    if (appointmentIndex === -1) {
+
+    const appointment = await Appointment.findOneAndUpdate(
+      { appointmentId },
+      { $set: { status: 'cancelled' } },
+      { new: true }
+    );
+
+    if (!appointment) {
       logger.warn(`Appointment not found: ${appointmentId}`);
       return res.status(404).json({
         success: false,
@@ -281,21 +288,17 @@ router.delete('/:appointmentId', async (req, res) => {
         message: `Appointment with ID ${appointmentId} does not exist`
       });
     }
-    
-    // Update status to cancelled
-    appointmentsStorage[appointmentIndex].status = 'cancelled';
-    appointmentsStorage[appointmentIndex].updatedAt = new Date().toISOString();
-    
+
     logger.info(`Cancelled appointment: ${appointmentId}`);
-    
+
     res.json({
       success: true,
       message: 'Appointment cancelled successfully',
       data: {
-        appointment: appointmentsStorage[appointmentIndex]
+        appointment
       }
     });
-    
+
   } catch (error) {
     logger.error('Error cancelling appointment:', error);
     res.status(500).json({
@@ -307,4 +310,3 @@ router.delete('/:appointmentId', async (req, res) => {
 });
 
 module.exports = router;
-

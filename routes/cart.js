@@ -1,4 +1,5 @@
 const express = require('express');
+const Cart = require('../models/Cart');
 
 const router = express.Router();
 
@@ -10,21 +11,6 @@ const logger = {
   debug: (message) => console.log(`[DEBUG] ${new Date().toISOString()} - ${message}`)
 };
 
-// In-memory cart storage (userId -> cart items)
-const cartStorage = {
-  // Example structure:
-  // 'user-123': [
-  //   {
-  //     productId: 'prod-001',
-  //     productName: 'Product Name',
-  //     price: 29.99,
-  //     quantity: 2,
-  //     image: 'https://example.com/image.jpg',
-  //     addedAt: '2024-01-15T14:30:00Z'
-  //   }
-  // ]
-};
-
 /**
  * Add item to cart
  * POST /api/cart
@@ -33,7 +19,7 @@ const cartStorage = {
 router.post('/', async (req, res) => {
   try {
     const { userId, productId, productName, price, quantity, image, categoryId } = req.body;
-    
+
     // Validation
     if (!userId || !productId || !productName || price === undefined || !quantity) {
       logger.warn('Add to cart failed: Missing required fields');
@@ -44,7 +30,7 @@ router.post('/', async (req, res) => {
         requiredFields: ['userId', 'productId', 'productName', 'price', 'quantity']
       });
     }
-    
+
     // Validate quantity
     if (quantity <= 0 || !Number.isInteger(quantity)) {
       logger.warn('Add to cart failed: Invalid quantity');
@@ -54,7 +40,7 @@ router.post('/', async (req, res) => {
         message: 'Quantity must be a positive integer'
       });
     }
-    
+
     // Validate price
     if (price < 0 || typeof price !== 'number') {
       logger.warn('Add to cart failed: Invalid price');
@@ -64,29 +50,34 @@ router.post('/', async (req, res) => {
         message: 'Price must be a positive number'
       });
     }
-    
-    // Initialize cart for user if doesn't exist
-    if (!cartStorage[userId]) {
-      cartStorage[userId] = [];
+
+    // Find or create cart for user
+    let cart = await Cart.findOne({ userId });
+
+    if (!cart) {
+      // Create new cart
+      cart = new Cart({ userId, items: [] });
     }
-    
+
     // Check if product already exists in cart
-    const existingItemIndex = cartStorage[userId].findIndex(item => item.productId === productId);
-    
+    const existingItemIndex = cart.items.findIndex(item => item.productId === productId);
+
     if (existingItemIndex !== -1) {
       // Update quantity if product exists
-      cartStorage[userId][existingItemIndex].quantity += quantity;
-      cartStorage[userId][existingItemIndex].updatedAt = new Date().toISOString();
-      
-      logger.info(`Updated cart for user ${userId}: productId ${productId}, new quantity: ${cartStorage[userId][existingItemIndex].quantity}`);
-      
+      cart.items[existingItemIndex].quantity += quantity;
+      cart.items[existingItemIndex].updatedAt = new Date();
+
+      await cart.save();
+
+      logger.info(`Updated cart for user ${userId}: productId ${productId}, new quantity: ${cart.items[existingItemIndex].quantity}`);
+
       return res.status(200).json({
         success: true,
         message: 'Product quantity updated in cart',
         data: {
-          cartItem: cartStorage[userId][existingItemIndex],
-          totalItems: cartStorage[userId].length,
-          totalQuantity: cartStorage[userId].reduce((sum, item) => sum + item.quantity, 0)
+          cartItem: cart.items[existingItemIndex],
+          totalItems: cart.totalItems,
+          totalQuantity: cart.totalQuantity
         }
       });
     } else {
@@ -98,25 +89,26 @@ router.post('/', async (req, res) => {
         quantity,
         image: image || null,
         categoryId: categoryId || null,
-        addedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        addedAt: new Date(),
+        updatedAt: new Date()
       };
-      
-      cartStorage[userId].push(newItem);
-      
+
+      cart.items.push(newItem);
+      await cart.save();
+
       logger.info(`Added to cart for user ${userId}: productId ${productId}, quantity: ${quantity}`);
-      
+
       return res.status(201).json({
         success: true,
         message: 'Product added to cart successfully',
         data: {
           cartItem: newItem,
-          totalItems: cartStorage[userId].length,
-          totalQuantity: cartStorage[userId].reduce((sum, item) => sum + item.quantity, 0)
+          totalItems: cart.totalItems,
+          totalQuantity: cart.totalQuantity
         }
       });
     }
-    
+
   } catch (error) {
     logger.error('Error adding to cart:', error);
     res.status(500).json({
@@ -134,32 +126,43 @@ router.post('/', async (req, res) => {
 router.get('/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    
+
     logger.info(`Fetching cart for user: ${userId}`);
-    
+
     // Get cart for the user
-    const userCart = cartStorage[userId] || [];
-    
-    // Calculate totals
-    const totalItems = userCart.length;
-    const totalQuantity = userCart.reduce((sum, item) => sum + item.quantity, 0);
-    const totalPrice = userCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    logger.info(`Found ${totalItems} items in cart for user: ${userId}`);
-    
+    const cart = await Cart.findOne({ userId });
+
+    if (!cart) {
+      // Return empty cart if not found
+      return res.json({
+        success: true,
+        data: {
+          userId,
+          items: [],
+          summary: {
+            totalItems: 0,
+            totalQuantity: 0,
+            totalPrice: 0
+          }
+        }
+      });
+    }
+
+    logger.info(`Found ${cart.totalItems} items in cart for user: ${userId}`);
+
     res.json({
       success: true,
       data: {
         userId,
-        items: userCart,
+        items: cart.items,
         summary: {
-          totalItems,
-          totalQuantity,
-          totalPrice: parseFloat(totalPrice.toFixed(2))
+          totalItems: cart.totalItems,
+          totalQuantity: cart.totalQuantity,
+          totalPrice: parseFloat(cart.totalPrice.toFixed(2))
         }
       }
     });
-    
+
   } catch (error) {
     logger.error('Error fetching cart:', error);
     res.status(500).json({
@@ -177,11 +180,13 @@ router.get('/:userId', async (req, res) => {
 router.delete('/:userId/:productId', async (req, res) => {
   try {
     const { userId, productId } = req.params;
-    
+
     logger.info(`Removing product ${productId} from cart for user: ${userId}`);
-    
-    // Check if cart exists
-    if (!cartStorage[userId] || cartStorage[userId].length === 0) {
+
+    // Find cart
+    const cart = await Cart.findOne({ userId });
+
+    if (!cart || cart.items.length === 0) {
       logger.warn(`Cart is empty for user: ${userId}`);
       return res.status(404).json({
         success: false,
@@ -189,10 +194,10 @@ router.delete('/:userId/:productId', async (req, res) => {
         message: `Cart is empty for user: ${userId}`
       });
     }
-    
+
     // Find product index
-    const productIndex = cartStorage[userId].findIndex(item => item.productId === productId);
-    
+    const productIndex = cart.items.findIndex(item => item.productId === productId);
+
     if (productIndex === -1) {
       logger.warn(`Product ${productId} not found in cart for user: ${userId}`);
       return res.status(404).json({
@@ -201,31 +206,27 @@ router.delete('/:userId/:productId', async (req, res) => {
         message: `Product ${productId} not found in cart`
       });
     }
-    
+
     // Remove product
-    const removedItem = cartStorage[userId].splice(productIndex, 1)[0];
-    
+    const removedItem = cart.items.splice(productIndex, 1)[0];
+    await cart.save();
+
     logger.info(`Removed product ${productId} from cart for user: ${userId}`);
-    
-    // Calculate new totals
-    const totalItems = cartStorage[userId].length;
-    const totalQuantity = cartStorage[userId].reduce((sum, item) => sum + item.quantity, 0);
-    const totalPrice = cartStorage[userId].reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
+
     res.json({
       success: true,
       message: 'Product removed from cart successfully',
       data: {
         removedItem,
-        remainingItems: cartStorage[userId],
+        remainingItems: cart.items,
         summary: {
-          totalItems,
-          totalQuantity,
-          totalPrice: parseFloat(totalPrice.toFixed(2))
+          totalItems: cart.totalItems,
+          totalQuantity: cart.totalQuantity,
+          totalPrice: parseFloat(cart.totalPrice.toFixed(2))
         }
       }
     });
-    
+
   } catch (error) {
     logger.error('Error removing from cart:', error);
     res.status(500).json({
@@ -243,11 +244,13 @@ router.delete('/:userId/:productId', async (req, res) => {
 router.delete('/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    
+
     logger.info(`Clearing cart for user: ${userId}`);
-    
-    // Check if cart exists
-    if (!cartStorage[userId] || cartStorage[userId].length === 0) {
+
+    // Find cart
+    const cart = await Cart.findOne({ userId });
+
+    if (!cart || cart.items.length === 0) {
       logger.warn(`Cart already empty for user: ${userId}`);
       return res.json({
         success: true,
@@ -258,12 +261,13 @@ router.delete('/:userId', async (req, res) => {
         }
       });
     }
-    
-    const itemsCleared = cartStorage[userId].length;
-    cartStorage[userId] = [];
-    
+
+    const itemsCleared = cart.items.length;
+    cart.items = [];
+    await cart.save();
+
     logger.info(`Cleared ${itemsCleared} items from cart for user: ${userId}`);
-    
+
     res.json({
       success: true,
       message: 'Cart cleared successfully',
@@ -272,7 +276,7 @@ router.delete('/:userId', async (req, res) => {
         itemsCleared
       }
     });
-    
+
   } catch (error) {
     logger.error('Error clearing cart:', error);
     res.status(500).json({
@@ -292,7 +296,7 @@ router.put('/:userId/:productId', async (req, res) => {
   try {
     const { userId, productId } = req.params;
     const { quantity } = req.body;
-    
+
     // Validation
     if (quantity === undefined) {
       logger.warn('Update cart failed: Missing quantity');
@@ -302,7 +306,7 @@ router.put('/:userId/:productId', async (req, res) => {
         message: 'quantity is required'
       });
     }
-    
+
     // Validate quantity
     if (quantity <= 0 || !Number.isInteger(quantity)) {
       logger.warn('Update cart failed: Invalid quantity');
@@ -312,11 +316,13 @@ router.put('/:userId/:productId', async (req, res) => {
         message: 'Quantity must be a positive integer'
       });
     }
-    
+
     logger.info(`Updating quantity for product ${productId} in cart for user: ${userId}`);
-    
-    // Check if cart exists
-    if (!cartStorage[userId] || cartStorage[userId].length === 0) {
+
+    // Find cart
+    const cart = await Cart.findOne({ userId });
+
+    if (!cart || cart.items.length === 0) {
       logger.warn(`Cart not found for user: ${userId}`);
       return res.status(404).json({
         success: false,
@@ -324,10 +330,10 @@ router.put('/:userId/:productId', async (req, res) => {
         message: `Cart is empty for user: ${userId}`
       });
     }
-    
+
     // Find product
-    const productIndex = cartStorage[userId].findIndex(item => item.productId === productId);
-    
+    const productIndex = cart.items.findIndex(item => item.productId === productId);
+
     if (productIndex === -1) {
       logger.warn(`Product ${productId} not found in cart for user: ${userId}`);
       return res.status(404).json({
@@ -336,31 +342,27 @@ router.put('/:userId/:productId', async (req, res) => {
         message: `Product ${productId} not found in cart`
       });
     }
-    
+
     // Update quantity
-    cartStorage[userId][productIndex].quantity = quantity;
-    cartStorage[userId][productIndex].updatedAt = new Date().toISOString();
-    
+    cart.items[productIndex].quantity = quantity;
+    cart.items[productIndex].updatedAt = new Date();
+    await cart.save();
+
     logger.info(`Updated quantity for product ${productId} to ${quantity} for user: ${userId}`);
-    
-    // Calculate new totals
-    const totalItems = cartStorage[userId].length;
-    const totalQuantity = cartStorage[userId].reduce((sum, item) => sum + item.quantity, 0);
-    const totalPrice = cartStorage[userId].reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
+
     res.json({
       success: true,
       message: 'Cart updated successfully',
       data: {
-        updatedItem: cartStorage[userId][productIndex],
+        updatedItem: cart.items[productIndex],
         summary: {
-          totalItems,
-          totalQuantity,
-          totalPrice: parseFloat(totalPrice.toFixed(2))
+          totalItems: cart.totalItems,
+          totalQuantity: cart.totalQuantity,
+          totalPrice: parseFloat(cart.totalPrice.toFixed(2))
         }
       }
     });
-    
+
   } catch (error) {
     logger.error('Error updating cart:', error);
     res.status(500).json({
@@ -372,4 +374,3 @@ router.put('/:userId/:productId', async (req, res) => {
 });
 
 module.exports = router;
-
