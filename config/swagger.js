@@ -6,7 +6,20 @@ const options = {
         info: {
             title: 'Orders & Medical API Service',
             version: '1.0.0',
-            description: 'A comprehensive API for managing orders, products, carts, and medical appointments/services.',
+            description: `
+                A comprehensive REST API service with full CRUD operations for:
+                
+                **User Management** - Complete user CRUD operations
+                **Product Management** - Products with categories, real images from Unsplash
+                **Category Management** - Product categories CRUD
+                **Order Management** - Order processing and management
+                **Cart Management** - Shopping cart operations
+                **Hospital Management** - Hospital CRUD operations
+                **Doctor Management** - Doctor profiles and management
+                **Appointment Management** - Medical appointment booking and management
+                
+                All endpoints support full Create, Read, Update, Delete operations.
+            `,
             contact: {
                 name: 'API Support',
                 email: 'support@example.com',

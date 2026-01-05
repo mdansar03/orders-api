@@ -4,6 +4,23 @@ const Category = require('../models/Category');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Category:
+ *       type: object
+ *       properties:
+ *         categoryId:
+ *           type: string
+ *         categoryName:
+ *           type: string
+ *         description:
+ *           type: string
+ *         isActive:
+ *           type: boolean
+ */
+
 // Simple logger for standalone service
 const logger = {
   info: (message) => console.log(`[INFO] ${new Date().toISOString()} - ${message}`),
@@ -13,8 +30,30 @@ const logger = {
 };
 
 /**
- * Get all categories
- * GET /api/categories
+ * @swagger
+ * /categories:
+ *   get:
+ *     summary: Get all categories
+ *     tags: [Categories]
+ *     responses:
+ *       200:
+ *         description: List of all active categories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     categories:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Category'
+ *                     totalCategories:
+ *                       type: number
  */
 router.get('/', /* authenticateToken, */ async (req, res) => {
   try {
@@ -41,8 +80,22 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
 });
 
 /**
- * Get category by ID
- * GET /api/categories/{categoryId}
+ * @swagger
+ * /categories/{categoryId}:
+ *   get:
+ *     summary: Get category by ID
+ *     tags: [Categories]
+ *     parameters:
+ *       - in: path
+ *         name: categoryId
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Category details
+ *       404:
+ *         description: Category not found
  */
 router.get('/:categoryId', /* authenticateToken, */ async (req, res) => {
   try {
@@ -81,8 +134,31 @@ router.get('/:categoryId', /* authenticateToken, */ async (req, res) => {
 });
 
 /**
- * Create a new category
- * POST /api/categories
+ * @swagger
+ * /categories:
+ *   post:
+ *     summary: Create a new category
+ *     tags: [Categories]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - categoryName
+ *             properties:
+ *               categoryName:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Category created successfully
+ *       400:
+ *         description: Missing required fields
+ *       409:
+ *         description: Category already exists
  */
 router.post('/', async (req, res) => {
   try {
@@ -156,8 +232,36 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * Update a category
- * PUT /api/categories/:categoryId
+ * @swagger
+ * /categories/{categoryId}:
+ *   put:
+ *     summary: Update a category
+ *     tags: [Categories]
+ *     parameters:
+ *       - in: path
+ *         name: categoryId
+ *         schema:
+ *           type: string
+ *         required: true
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               categoryName:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Category updated successfully
+ *       404:
+ *         description: Category not found
+ *       409:
+ *         description: Category name already exists
  */
 router.put('/:categoryId', async (req, res) => {
   try {
@@ -231,8 +335,24 @@ router.put('/:categoryId', async (req, res) => {
 });
 
 /**
- * Delete a category (soft delete - set isActive to false)
- * DELETE /api/categories/:categoryId
+ * @swagger
+ * /categories/{categoryId}:
+ *   delete:
+ *     summary: Delete a category (soft delete)
+ *     tags: [Categories]
+ *     parameters:
+ *       - in: path
+ *         name: categoryId
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Category deleted successfully
+ *       404:
+ *         description: Category not found
+ *       409:
+ *         description: Cannot delete category with active products
  */
 router.delete('/:categoryId', async (req, res) => {
   try {

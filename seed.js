@@ -97,6 +97,34 @@ const seedCategories = async () => {
     console.log(`✅ Created ${createdCategories.length} Categories`);
 };
 
+/**
+ * Generate a real working image URL from Unsplash Source
+ */
+const generateImageUrl = (categoryName = 'product', width = 800, height = 600) => {
+    const categoryMap = {
+        'electronics': 'electronics',
+        'clothing': 'fashion',
+        'food': 'food',
+        'books': 'books',
+        'furniture': 'furniture',
+        'sports': 'sports',
+        'toys': 'toys',
+        'beauty': 'cosmetics',
+        'health': 'health',
+        'automotive': 'car',
+        'home & garden': 'home',
+        'garden': 'garden',
+        'default': 'product'
+    };
+
+    const normalizedCategory = categoryName.toLowerCase().trim();
+    const searchTerm = categoryMap[normalizedCategory] || 
+                       categoryMap[Object.keys(categoryMap).find(key => normalizedCategory.includes(key))] || 
+                       categoryMap['default'];
+    
+    return `https://source.unsplash.com/${width}x${height}/?${searchTerm}`;
+};
+
 const seedProducts = async () => {
     console.log('🌱 Seeding Products...');
     const productsData = [
@@ -110,21 +138,24 @@ const seedProducts = async () => {
         { name: 'Wireless Earbuds', price: 129, stock: 150, catInvalid: 0 }
     ];
 
-    const prodDocs = productsData.map((p, i) => ({
-        productId: `prod-${String(i + 1).padStart(3, '0')}`,
-        productName: p.name,
-        categoryId: createdCategories[p.catInvalid]?.categoryId || createdCategories[0].categoryId,
-        categoryName: createdCategories[p.catInvalid]?.categoryName || createdCategories[0].categoryName,
-        description: `High quality ${p.name}`,
-        price: p.price,
-        inStock: p.stock > 0,
-        stockQuantity: p.stock,
-        imageUrl: `https://via.placeholder.com/150?text=${p.name.replace(/\s/g, '+')}`,
-        isActive: true
-    }));
+    const prodDocs = productsData.map((p, i) => {
+        const category = createdCategories[p.catInvalid] || createdCategories[0];
+        return {
+            productId: `prod-${String(i + 1).padStart(3, '0')}`,
+            productName: p.name,
+            categoryId: category.categoryId,
+            categoryName: category.categoryName,
+            description: `High quality ${p.name}`,
+            price: p.price,
+            inStock: p.stock > 0,
+            stockQuantity: p.stock,
+            imageUrl: generateImageUrl(category.categoryName),
+            isActive: true
+        };
+    });
 
     createdProducts = await Product.insertMany(prodDocs);
-    console.log(`✅ Created ${createdProducts.length} Products`);
+    console.log(`✅ Created ${createdProducts.length} Products with real images`);
 };
 
 const seedHospitals = async () => {

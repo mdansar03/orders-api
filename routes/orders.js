@@ -4,6 +4,47 @@ const Order = require('../models/Order');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Order:
+ *       type: object
+ *       properties:
+ *         orderId:
+ *           type: string
+ *         userId:
+ *           type: string
+ *         status:
+ *           type: string
+ *           enum: [pending, processing, shipped, delivered, cancelled]
+ *         totalAmount:
+ *           type: number
+ *         items:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               productId:
+ *                 type: string
+ *               productName:
+ *                 type: string
+ *               quantity:
+ *                 type: number
+ *               price:
+ *                 type: number
+ *               subtotal:
+ *                 type: number
+ *         shippingAddress:
+ *           type: object
+ *         paymentMethod:
+ *           type: string
+ *           enum: [credit_card, debit_card, paypal, cash_on_delivery]
+ *         paymentStatus:
+ *           type: string
+ *           enum: [pending, paid, failed, refunded]
+ */
+
 // Simple logger for standalone service
 const logger = {
   info: (message) => console.log(`[INFO] ${new Date().toISOString()} - ${message}`),
@@ -13,8 +54,48 @@ const logger = {
 };
 
 /**
- * Get all orders (with optional filters)
- * GET /api/orders
+ * @swagger
+ * /orders:
+ *   get:
+ *     summary: Get all orders with optional filters
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter by user ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, processing, shipped, delivered, cancelled]
+ *         description: Filter by order status
+ *       - in: query
+ *         name: paymentStatus
+ *         schema:
+ *           type: string
+ *           enum: [pending, paid, failed, refunded]
+ *         description: Filter by payment status
+ *     responses:
+ *       200:
+ *         description: List of orders
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     orders:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Order'
+ *                     totalOrders:
+ *                       type: number
  */
 router.get('/', async (req, res) => {
   try {
@@ -113,9 +194,23 @@ const getUserOrdersHandler = async (req, res) => {
 router.get('/user/:userId', /* authenticateToken, */ getUserOrdersHandler);
 
 /**
- * Get order by ID
- * GET /api/orders/:orderId
- * Note: This route should come after /user/:userId to avoid conflicts
+ * @swagger
+ * /orders/{orderId}:
+ *   get:
+ *     summary: Get order by ID
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Order ID (or userId for backward compatibility)
+ *     responses:
+ *       200:
+ *         description: Order details
+ *       404:
+ *         description: Order not found
  */
 router.get('/:orderId', async (req, res) => {
   try {
@@ -159,8 +254,53 @@ router.get('/:orderId', async (req, res) => {
 });
 
 /**
- * Create a new order
- * POST /api/orders
+ * @swagger
+ * /orders:
+ *   post:
+ *     summary: Create a new order
+ *     tags: [Orders]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - items
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - productId
+ *                     - productName
+ *                     - quantity
+ *                     - price
+ *                   properties:
+ *                     productId:
+ *                       type: string
+ *                     productName:
+ *                       type: string
+ *                     quantity:
+ *                       type: number
+ *                     price:
+ *                       type: number
+ *               shippingAddress:
+ *                 type: object
+ *               paymentMethod:
+ *                 type: string
+ *                 enum: [credit_card, debit_card, paypal, cash_on_delivery]
+ *               totalAmount:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: Order created successfully
+ *       400:
+ *         description: Missing required fields or invalid data
  */
 router.post('/', async (req, res) => {
   try {
@@ -255,8 +395,40 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * Update an order
- * PUT /api/orders/:orderId
+ * @swagger
+ * /orders/{orderId}:
+ *   put:
+ *     summary: Update an order
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         schema:
+ *           type: string
+ *         required: true
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [pending, processing, shipped, delivered, cancelled]
+ *               paymentStatus:
+ *                 type: string
+ *                 enum: [pending, paid, failed, refunded]
+ *               items:
+ *                 type: array
+ *               shippingAddress:
+ *                 type: object
+ *               paymentMethod:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Order updated successfully
+ *       404:
+ *         description: Order not found
  */
 router.put('/:orderId', async (req, res) => {
   try {
@@ -318,8 +490,27 @@ router.put('/:orderId', async (req, res) => {
 });
 
 /**
- * Delete/Cancel an order
- * DELETE /api/orders/:orderId
+ * @swagger
+ * /orders/{orderId}:
+ *   delete:
+ *     summary: Delete or cancel an order
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         schema:
+ *           type: string
+ *         required: true
+ *       - in: query
+ *         name: hardDelete
+ *         schema:
+ *           type: boolean
+ *         description: If true, permanently delete. If false, soft delete (cancel)
+ *     responses:
+ *       200:
+ *         description: Order deleted/cancelled successfully
+ *       404:
+ *         description: Order not found
  */
 router.delete('/:orderId', async (req, res) => {
   try {

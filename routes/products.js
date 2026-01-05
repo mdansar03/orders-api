@@ -253,8 +253,44 @@ router.get('/:productId', /* authenticateToken, */ async (req, res) => {
 });
 
 /**
- * Create a new product
- * POST /api/products/create
+ * @swagger
+ * /products/create:
+ *   post:
+ *     summary: Create a new product
+ *     tags: [Products]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - productName
+ *               - categoryId
+ *               - categoryName
+ *               - price
+ *             properties:
+ *               productName:
+ *                 type: string
+ *               categoryId:
+ *                 type: string
+ *               categoryName:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               stockQuantity:
+ *                 type: number
+ *               imageUrl:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Product created successfully
+ *       400:
+ *         description: Missing required fields or invalid data
+ *       404:
+ *         description: Category not found
  */
 router.post('/create', async (req, res) => {
   try {
@@ -343,8 +379,44 @@ router.post('/create', async (req, res) => {
 });
 
 /**
- * Update a product
- * PUT /api/products/:productId
+ * @swagger
+ * /products/{productId}:
+ *   put:
+ *     summary: Update a product
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         schema:
+ *           type: string
+ *         required: true
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               productName:
+ *                 type: string
+ *               categoryId:
+ *                 type: string
+ *               categoryName:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               stockQuantity:
+ *                 type: number
+ *               inStock:
+ *                 type: boolean
+ *               imageUrl:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Product updated successfully
+ *       404:
+ *         description: Product not found
  */
 router.put('/:productId', async (req, res) => {
   try {
@@ -417,8 +489,22 @@ router.put('/:productId', async (req, res) => {
 });
 
 /**
- * Delete a product (soft delete - set isActive to false)
- * DELETE /api/products/:productId
+ * @swagger
+ * /products/{productId}:
+ *   delete:
+ *     summary: Delete a product (soft delete)
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Product deleted successfully
+ *       404:
+ *         description: Product not found
  */
 router.delete('/:productId', async (req, res) => {
   try {
@@ -457,6 +543,109 @@ router.delete('/:productId', async (req, res) => {
       success: false,
       error: 'Internal server error',
       message: 'Failed to delete product'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /products/update-images:
+ *   post:
+ *     summary: Update all products with real images from Unsplash
+ *     tags: [Products]
+ *     description: Updates all active products with real working images based on their categories
+ *     responses:
+ *       200:
+ *         description: Products updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     updated:
+ *                       type: number
+ *                     total:
+ *                       type: number
+ *                     results:
+ *                       type: array
+ */
+router.post('/update-images', async (req, res) => {
+  try {
+    logger.info('Starting image update for all products');
+
+    // Get all active products
+    const products = await Product.find({ isActive: true });
+
+    if (products.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No products found to update',
+        data: {
+          updated: 0,
+          total: 0
+        }
+      });
+    }
+
+    let updatedCount = 0;
+    const updateResults = [];
+
+    // Update each product with a real image based on its category
+    for (const product of products) {
+      try {
+        const newImageUrl = generateImageUrl(product.categoryName);
+        
+        await Product.updateOne(
+          { productId: product.productId },
+          { $set: { imageUrl: newImageUrl } }
+        );
+
+        updatedCount++;
+        updateResults.push({
+          productId: product.productId,
+          productName: product.productName,
+          categoryName: product.categoryName,
+          newImageUrl: newImageUrl,
+          status: 'updated'
+        });
+
+        logger.info(`Updated image for product: ${product.productId} (${product.productName})`);
+      } catch (error) {
+        logger.error(`Error updating product ${product.productId}:`, error);
+        updateResults.push({
+          productId: product.productId,
+          productName: product.productName,
+          status: 'failed',
+          error: error.message
+        });
+      }
+    }
+
+    logger.info(`Image update completed: ${updatedCount}/${products.length} products updated`);
+
+    res.json({
+      success: true,
+      message: `Successfully updated images for ${updatedCount} out of ${products.length} products`,
+      data: {
+        updated: updatedCount,
+        total: products.length,
+        results: updateResults
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error updating product images:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Failed to update product images'
     });
   }
 });
