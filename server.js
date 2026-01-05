@@ -10,6 +10,7 @@ const ordersRoutes = require('./routes/orders');
 const orderDetailsRoutes = require('./routes/order-details');
 const deliveryDetailsRoutes = require('./routes/delivery-details');
 const authRoutes = require('./routes/auth');
+const usersRoutes = require('./routes/users');
 const categoriesRoutes = require('./routes/categories');
 const productsRoutes = require('./routes/products');
 const cartRoutes = require('./routes/cart');
@@ -45,6 +46,9 @@ app.get('/health', (req, res) => {
 
 // Authentication routes (no auth required for these)
 app.use('/api/auth', authRoutes);
+
+// User management routes (CRUD)
+app.use('/api/users', usersRoutes);
 
 // Cart routes (no auth required)
 app.use('/api/cart', cartRoutes);
@@ -88,6 +92,11 @@ app.get('/', (req, res) => {
         'POST /api/auth/verify - Token validation',
         'GET /api/auth/test-users - Get test user credentials',
         'POST /api/auth/logout - Logout (client-side token cleanup)',
+        'GET /api/users - Get all users (CRUD)',
+        'GET /api/users/{userId} - Get user by ID',
+        'POST /api/users - Create new user',
+        'PUT /api/users/{userId} - Update user',
+        'DELETE /api/users/{userId} - Delete user',
         'POST /api/cart - Add item to cart (no auth)',
         'GET /api/cart/{userId} - Get cart items (no auth)',
         'PUT /api/cart/{userId}/{productId} - Update item quantity (no auth)',
@@ -95,16 +104,27 @@ app.get('/', (req, res) => {
         'DELETE /api/cart/{userId} - Clear entire cart (no auth)'
       ],
       protected: [
-        'GET /api/orders/{userId} - Get orders for user (auth commented out)',
-        'GET /api/order-details/{orderId} - Get order details (auth commented out)',
-        'GET /api/delivery-details - Get all deliveries (auth commented out)',
-        'GET /api/delivery-details/{deliveryId} - Get delivery details (auth commented out)',
-        'GET /api/delivery-details/{deliveryId}/status - Get delivery status (auth commented out)',
-        'GET /api/categories - Get all categories (auth commented out)',
-        'GET /api/categories/{categoryId} - Get category by ID (auth commented out)',
-        'POST /api/products - Get products with optional filters (auth commented out)',
-        'GET /api/products/all - Get all products (auth commented out)',
-        'GET /api/products/{productId} - Get product by ID (auth commented out)'
+        'GET /api/orders - Get all orders with filters (CRUD)',
+        'GET /api/orders/user/{userId} - Get orders for user',
+        'GET /api/orders/{orderId} - Get order by ID',
+        'POST /api/orders - Create new order',
+        'PUT /api/orders/{orderId} - Update order',
+        'DELETE /api/orders/{orderId} - Cancel/Delete order',
+        'GET /api/order-details/{orderId} - Get order details',
+        'GET /api/delivery-details - Get all deliveries',
+        'GET /api/delivery-details/{deliveryId} - Get delivery details',
+        'GET /api/delivery-details/{deliveryId}/status - Get delivery status',
+        'GET /api/categories - Get all categories (CRUD)',
+        'GET /api/categories/{categoryId} - Get category by ID',
+        'POST /api/categories - Create new category',
+        'PUT /api/categories/{categoryId} - Update category',
+        'DELETE /api/categories/{categoryId} - Delete category',
+        'POST /api/products - Get products with optional filters',
+        'POST /api/products/create - Create new product',
+        'GET /api/products/all - Get all products',
+        'GET /api/products/{productId} - Get product by ID',
+        'PUT /api/products/{productId} - Update product',
+        'DELETE /api/products/{productId} - Delete product'
       ],
       medical: [
         'GET /api/hospitals - Get all hospitals (CRUD)',
@@ -164,14 +184,15 @@ const startServer = async () => {
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`📋 Health check: http://localhost:${PORT}/health`);
       console.log(`🛒 Cart API: http://localhost:${PORT}/api/cart (no auth)`);
-      console.log(`📦 Orders API: http://localhost:${PORT}/api/orders/{userId}`);
+      console.log(`👤 Users API: http://localhost:${PORT}/api/users (CRUD)`);
+      console.log(`📦 Orders API: http://localhost:${PORT}/api/orders (CRUD)`);
       console.log(`📝 Order Details API: http://localhost:${PORT}/api/order-details/{orderId}`);
       console.log(`🚚 Delivery Details API: http://localhost:${PORT}/api/delivery-details/{deliveryId}`);
-      console.log(`🏷️  Categories API: http://localhost:${PORT}/api/categories`);
-      console.log(`📱 Products API: http://localhost:${PORT}/api/products (POST method)`);
-      console.log(`🏥 Hospitals API: http://localhost:${PORT}/api/hospitals`);
-      console.log(`👨‍⚕️ Doctors API: http://localhost:${PORT}/api/doctors`);
-      console.log(`📅 Appointments API: http://localhost:${PORT}/api/appointments`);
+      console.log(`🏷️  Categories API: http://localhost:${PORT}/api/categories (CRUD)`);
+      console.log(`📱 Products API: http://localhost:${PORT}/api/products (CRUD)`);
+      console.log(`🏥 Hospitals API: http://localhost:${PORT}/api/hospitals (CRUD)`);
+      console.log(`👨‍⚕️ Doctors API: http://localhost:${PORT}/api/doctors (CRUD)`);
+      console.log(`📅 Appointments API: http://localhost:${PORT}/api/appointments (CRUD)`);
       console.log(`✅ Booked Appointments API: http://localhost:${PORT}/api/booked-appointments`);
     });
 

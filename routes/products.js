@@ -1,5 +1,6 @@
 const express = require('express');
 const Product = require('../models/Product');
+const Category = require('../models/Category');
 // const { authenticateToken } = require('../middleware/auth'); // COMMENTED OUT - No auth required
 
 const router = express.Router();
@@ -33,6 +34,36 @@ const logger = {
   error: (message, error) => console.error(`[ERROR] ${new Date().toISOString()} - ${message}`, error || ''),
   warn: (message) => console.warn(`[WARN] ${new Date().toISOString()} - ${message}`),
   debug: (message) => console.log(`[DEBUG] ${new Date().toISOString()} - ${message}`)
+};
+
+/**
+ * Generate a real working image URL from Unsplash Source
+ * @param {string} categoryName - Category name to generate relevant image
+ * @param {number} width - Image width (default: 800)
+ * @param {number} height - Image height (default: 600)
+ * @returns {string} Image URL
+ */
+const generateImageUrl = (categoryName = 'product', width = 800, height = 600) => {
+  // Map categories to relevant Unsplash search terms
+  const categoryMap = {
+    'electronics': 'electronics',
+    'clothing': 'fashion',
+    'food': 'food',
+    'books': 'books',
+    'furniture': 'furniture',
+    'sports': 'sports',
+    'toys': 'toys',
+    'beauty': 'cosmetics',
+    'health': 'health',
+    'automotive': 'car',
+    'default': 'product'
+  };
+
+  const searchTerm = categoryMap[categoryName.toLowerCase()] || categoryMap['default'];
+  
+  // Use Unsplash Source API for real working images
+  // Format: https://source.unsplash.com/{width}x{height}/?{search_term}
+  return `https://source.unsplash.com/${width}x${height}/?${searchTerm}`;
 };
 
 /**
@@ -217,6 +248,215 @@ router.get('/:productId', /* authenticateToken, */ async (req, res) => {
       success: false,
       error: 'Internal server error',
       message: 'Failed to retrieve product'
+    });
+  }
+});
+
+/**
+ * Create a new product
+ * POST /api/products/create
+ */
+router.post('/create', async (req, res) => {
+  try {
+    const { productName, categoryId, categoryName, description, price, stockQuantity, imageUrl } = req.body;
+
+    // Validation
+    if (!productName || !categoryId || !categoryName || price === undefined) {
+      logger.warn('Create product failed: Missing required fields');
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        message: 'productName, categoryId, categoryName, and price are required'
+      });
+    }
+
+    // Validate price
+    if (price < 0 || typeof price !== 'number') {
+      logger.warn('Create product failed: Invalid price');
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid price',
+        message: 'Price must be a positive number'
+      });
+    }
+
+    // Check if category exists
+    const category = await Category.findOne({ categoryId, isActive: true });
+    if (!category) {
+      logger.warn(`Create product failed: Category not found - ${categoryId}`);
+      return res.status(404).json({
+        success: false,
+        error: 'Category not found',
+        message: `Category with ID ${categoryId} does not exist`
+      });
+    }
+
+    // Generate new product ID
+    const count = await Product.countDocuments();
+    const productId = `prod-${String(count + 1).padStart(6, '0')}`;
+
+    // Generate real image URL if not provided
+    const finalImageUrl = imageUrl || generateImageUrl(categoryName);
+
+    const newProduct = new Product({
+      productId,
+      productName,
+      categoryId,
+      categoryName,
+      description: description || '',
+      price,
+      stockQuantity: stockQuantity || 0,
+      inStock: (stockQuantity || 0) > 0,
+      imageUrl: finalImageUrl,
+      isActive: true
+    });
+
+    await newProduct.save();
+
+    logger.info(`Created new product: ${productId}`);
+
+    res.status(201).json({
+      success: true,
+      message: 'Product created successfully',
+      data: {
+        product: newProduct
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error creating product:', error);
+    
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        error: 'Product already exists',
+        message: 'Product with this ID already exists'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Failed to create product'
+    });
+  }
+});
+
+/**
+ * Update a product
+ * PUT /api/products/:productId
+ */
+router.put('/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const updateData = req.body;
+
+    logger.info(`Updating product: ${productId}`);
+
+    // Prevent ID change
+    delete updateData.productId;
+
+    // If categoryId is being updated, validate it
+    if (updateData.categoryId) {
+      const category = await Category.findOne({ categoryId: updateData.categoryId, isActive: true });
+      if (!category) {
+        return res.status(404).json({
+          success: false,
+          error: 'Category not found',
+          message: `Category with ID ${updateData.categoryId} does not exist`
+        });
+      }
+    }
+
+    // Update inStock based on stockQuantity if stockQuantity is being updated
+    if (updateData.stockQuantity !== undefined) {
+      updateData.inStock = updateData.stockQuantity > 0;
+    }
+
+    // Generate new image URL if categoryName changed and no imageUrl provided
+    if (updateData.categoryName && !updateData.imageUrl) {
+      const existingProduct = await Product.findOne({ productId });
+      if (existingProduct && existingProduct.categoryName !== updateData.categoryName) {
+        updateData.imageUrl = generateImageUrl(updateData.categoryName);
+      }
+    }
+
+    const product = await Product.findOneAndUpdate(
+      { productId },
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!product) {
+      logger.warn(`Product not found: ${productId}`);
+      return res.status(404).json({
+        success: false,
+        error: 'Product not found',
+        message: `Product with ID ${productId} does not exist`
+      });
+    }
+
+    logger.info(`Updated product: ${productId}`);
+
+    res.json({
+      success: true,
+      message: 'Product updated successfully',
+      data: {
+        product
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error updating product:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Failed to update product'
+    });
+  }
+});
+
+/**
+ * Delete a product (soft delete - set isActive to false)
+ * DELETE /api/products/:productId
+ */
+router.delete('/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    logger.info(`Deleting product: ${productId}`);
+
+    const product = await Product.findOneAndUpdate(
+      { productId },
+      { $set: { isActive: false } },
+      { new: true }
+    );
+
+    if (!product) {
+      logger.warn(`Product not found: ${productId}`);
+      return res.status(404).json({
+        success: false,
+        error: 'Product not found',
+        message: `Product with ID ${productId} does not exist`
+      });
+    }
+
+    logger.info(`Deleted product: ${productId}`);
+
+    res.json({
+      success: true,
+      message: 'Product deleted successfully',
+      data: {
+        product
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error deleting product:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Failed to delete product'
     });
   }
 });
