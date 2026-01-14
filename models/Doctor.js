@@ -1,3 +1,39 @@
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Doctor:
+ *       type: object
+ *       properties:
+ *         doctorId:
+ *           type: string
+ *         name:
+ *           type: string
+ *         specialty:
+ *           type: string
+ *         hospitalId:
+ *           type: string
+ *         hospitalName:
+ *           type: string
+ *         qualification:
+ *           type: string
+ *         experience:
+ *           type: number
+ *         phone:
+ *           type: string
+ *         email:
+ *           type: string
+ *         consultationFee:
+ *           type: number
+ *         rating:
+ *           type: number
+ *         availableDays:
+ *           type: array
+ *           items:
+ *             type: string
+ *         isActive:
+ *           type: boolean
+ */
 const mongoose = require('mongoose');
 
 const doctorSchema = new mongoose.Schema({

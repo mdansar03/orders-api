@@ -169,8 +169,20 @@ router.get('/:hospitalId', async (req, res) => {
 });
 
 /**
- * Create a new hospital
- * POST /api/hospitals
+ * @swagger
+ * /hospitals:
+ *   post:
+ *     summary: Create a new hospital
+ *     tags: [Hospitals]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Hospital'
+ *     responses:
+ *       201:
+ *         description: Hospital created successfully
  */
 router.post('/', async (req, res) => {
   try {
@@ -227,8 +239,26 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * Update a hospital
- * PUT /api/hospitals/:hospitalId
+ * @swagger
+ * /hospitals/{hospitalId}:
+ *   put:
+ *     summary: Update a hospital
+ *     tags: [Hospitals]
+ *     parameters:
+ *       - in: path
+ *         name: hospitalId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Hospital'
+ *     responses:
+ *       200:
+ *         description: Hospital updated successfully
  */
 router.put('/:hospitalId', async (req, res) => {
   try {
@@ -276,8 +306,20 @@ router.put('/:hospitalId', async (req, res) => {
 });
 
 /**
- * Delete a hospital (soft delete - set isActive to false)
- * DELETE /api/hospitals/:hospitalId
+ * @swagger
+ * /hospitals/{hospitalId}:
+ *   delete:
+ *     summary: Delete a hospital (soft delete)
+ *     tags: [Hospitals]
+ *     parameters:
+ *       - in: path
+ *         name: hospitalId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Hospital deleted successfully
  */
 router.delete('/:hospitalId', async (req, res) => {
   try {

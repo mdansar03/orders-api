@@ -142,10 +142,17 @@ router.get('/:doctorId', async (req, res) => {
       });
     }
 
+    // Fetch schedules
+    const DoctorSchedule = require('../models/DoctorSchedule');
+    const schedules = await DoctorSchedule.find({ doctorId, isActive: true });
+
     res.json({
       success: true,
       data: {
-        doctor
+        doctor: {
+          ...doctor.toObject(),
+          schedules
+        }
       }
     });
 
@@ -160,8 +167,20 @@ router.get('/:doctorId', async (req, res) => {
 });
 
 /**
- * Create a new doctor
- * POST /api/doctors
+ * @swagger
+ * /doctors:
+ *   post:
+ *     summary: Create a new doctor
+ *     tags: [Doctors]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Doctor'
+ *     responses:
+ *       201:
+ *         description: Doctor created successfully
  */
 router.post('/', async (req, res) => {
   try {
@@ -221,8 +240,26 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * Update a doctor
- * PUT /api/doctors/:doctorId
+ * @swagger
+ * /doctors/{doctorId}:
+ *   put:
+ *     summary: Update a doctor
+ *     tags: [Doctors]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Doctor'
+ *     responses:
+ *       200:
+ *         description: Doctor updated successfully
  */
 router.put('/:doctorId', async (req, res) => {
   try {
@@ -270,8 +307,20 @@ router.put('/:doctorId', async (req, res) => {
 });
 
 /**
- * Delete a doctor (soft delete - set isActive to false)
- * DELETE /api/doctors/:doctorId
+ * @swagger
+ * /doctors/{doctorId}:
+ *   delete:
+ *     summary: Delete a doctor (soft delete)
+ *     tags: [Doctors]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Doctor deleted successfully
  */
 router.delete('/:doctorId', async (req, res) => {
   try {

@@ -1,3 +1,40 @@
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Hospital:
+ *       type: object
+ *       properties:
+ *         hospitalId:
+ *           type: string
+ *         name:
+ *           type: string
+ *         address:
+ *           type: object
+ *           properties:
+ *             street:
+ *               type: string
+ *             city:
+ *               type: string
+ *             state:
+ *               type: string
+ *             zipCode:
+ *               type: string
+ *             country:
+ *               type: string
+ *         phone:
+ *           type: string
+ *         email:
+ *           type: string
+ *         specialties:
+ *           type: array
+ *           items:
+ *             type: string
+ *         rating:
+ *           type: number
+ *         isActive:
+ *           type: boolean
+ */
 const mongoose = require('mongoose');
 
 const hospitalSchema = new mongoose.Schema({

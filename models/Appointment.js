@@ -1,3 +1,47 @@
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Appointment:
+ *       type: object
+ *       properties:
+ *         appointmentId:
+ *           type: string
+ *         userId:
+ *           type: string
+ *         userName:
+ *           type: string
+ *         doctorId:
+ *           type: string
+ *         doctorName:
+ *           type: string
+ *         hospitalId:
+ *           type: string
+ *         hospitalName:
+ *           type: string
+ *         appointmentDate:
+ *           type: string
+ *           format: date-time
+ *         timeSlot:
+ *           type: object
+ *           properties:
+ *             startTime:
+ *               type: string
+ *             endTime:
+ *               type: string
+ *         status:
+ *           type: string
+ *           enum: [booked, cancelled, completed, no-show]
+ *         reason:
+ *           type: string
+ *         notes:
+ *           type: string
+ *         consultationFee:
+ *           type: number
+ *         paymentStatus:
+ *           type: string
+ *           enum: [pending, paid, refunded]
+ */
 const mongoose = require('mongoose');
 
 const appointmentSchema = new mongoose.Schema({
@@ -49,8 +93,8 @@ const appointmentSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['scheduled', 'confirmed', 'completed', 'cancelled', 'no-show'],
-        default: 'scheduled'
+        enum: ['booked', 'cancelled', 'completed', 'no-show'],
+        default: 'booked'
     },
     reason: {
         type: String,

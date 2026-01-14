@@ -24,7 +24,7 @@ const router = express.Router();
  *           format: date-time
  *         status:
  *           type: string
- *           enum: [scheduled, confirmed, completed, cancelled]
+ *           enum: [booked, cancelled, completed, no-show]
  *         reason:
  *           type: string
  */
@@ -170,8 +170,45 @@ router.get('/:appointmentId', async (req, res) => {
 });
 
 /**
- * Book a new appointment
- * POST /api/appointments
+ * @swagger
+ * /appointments:
+ *   post:
+ *     summary: Book a new appointment
+ *     tags: [Appointments]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               userName:
+ *                 type: string
+ *               doctorId:
+ *                 type: string
+ *               doctorName:
+ *                 type: string
+ *               hospitalId:
+ *                 type: string
+ *               hospitalName:
+ *                 type: string
+ *               appointmentDate:
+ *                 type: string
+ *                 format: date-time
+ *               timeSlot:
+ *                 type: object
+ *                 properties:
+ *                   startTime:
+ *                     type: string
+ *                   endTime:
+ *                     type: string
+ *               availabilityId:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Appointment booked successfully
  */
 router.post('/', async (req, res) => {
   try {
@@ -235,11 +272,20 @@ router.post('/', async (req, res) => {
       reason: reason || 'General consultation',
       notes: notes || '',
       consultationFee: consultationFee || 0,
-      status: 'scheduled',
+      status: 'booked',
       paymentStatus: 'pending'
     });
 
     await newAppointment.save();
+
+    // If availabilityId is provided, mark it as booked
+    if (req.body.availabilityId) {
+      const DoctorAvailability = require('../models/DoctorAvailability');
+      await DoctorAvailability.findOneAndUpdate(
+        { availabilityId: req.body.availabilityId },
+        { $set: { isBooked: true, appointmentId: appointmentId } }
+      );
+    }
 
     logger.info(`Booked new appointment: ${appointmentId}`);
 
@@ -262,8 +308,26 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * Update an appointment
- * PUT /api/appointments/:appointmentId
+ * @swagger
+ * /appointments/{appointmentId}:
+ *   put:
+ *     summary: Update an appointment
+ *     tags: [Appointments]
+ *     parameters:
+ *       - in: path
+ *         name: appointmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Appointment'
+ *     responses:
+ *       200:
+ *         description: Appointment updated successfully
  */
 router.put('/:appointmentId', async (req, res) => {
   try {
@@ -324,8 +388,20 @@ router.put('/:appointmentId', async (req, res) => {
 });
 
 /**
- * Cancel an appointment
- * DELETE /api/appointments/:appointmentId
+ * @swagger
+ * /appointments/{appointmentId}:
+ *   delete:
+ *     summary: Cancel an appointment
+ *     tags: [Appointments]
+ *     parameters:
+ *       - in: path
+ *         name: appointmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Appointment cancelled successfully
  */
 router.delete('/:appointmentId', async (req, res) => {
   try {
@@ -347,6 +423,13 @@ router.delete('/:appointmentId', async (req, res) => {
         message: `Appointment with ID ${appointmentId} does not exist`
       });
     }
+
+    // Release availability slot if it exists
+    const DoctorAvailability = require('../models/DoctorAvailability');
+    await DoctorAvailability.findOneAndUpdate(
+      { appointmentId: appointmentId },
+      { $set: { isBooked: false, appointmentId: null } }
+    );
 
     logger.info(`Cancelled appointment: ${appointmentId}`);
 

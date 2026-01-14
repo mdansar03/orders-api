@@ -13,8 +13,23 @@ const logger = {
 };
 
 /**
- * Get all booked appointments
- * GET /api/booked-appointments
+ * @swagger
+ * /booked-appointments:
+ *   get:
+ *     summary: Get all booked appointments
+ *     tags: [Booked Appointments]
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: doctorId
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of booked appointments
  */
 router.get('/', async (req, res) => {
   try {
@@ -23,7 +38,7 @@ router.get('/', async (req, res) => {
     logger.info('Fetching booked appointments');
 
     // Build query - only get non-cancelled appointments by default
-    const query = {};
+    const query = {}; // No default status filter anymore to allow viewing all including 'booked' status
 
     if (userId) {
       query.userId = userId;
@@ -77,8 +92,20 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * Get booked appointment by ID
- * GET /api/booked-appointments/:appointmentId
+ * @swagger
+ * /booked-appointments/{appointmentId}:
+ *   get:
+ *     summary: Get booked appointment by ID
+ *     tags: [Booked Appointments]
+ *     parameters:
+ *       - in: path
+ *         name: appointmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Booked appointment details
  */
 router.get('/:appointmentId', async (req, res) => {
   try {
@@ -115,8 +142,20 @@ router.get('/:appointmentId', async (req, res) => {
 });
 
 /**
- * Get booked appointments by user ID
- * GET /api/booked-appointments/user/:userId
+ * @swagger
+ * /booked-appointments/user/{userId}:
+ *   get:
+ *     summary: Get booked appointments by user ID
+ *     tags: [Booked Appointments]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of user appointments
  */
 router.get('/user/:userId', async (req, res) => {
   try {
@@ -160,8 +199,26 @@ router.get('/user/:userId', async (req, res) => {
 });
 
 /**
- * Update booked appointment status
- * PUT /api/booked-appointments/:appointmentId
+ * @swagger
+ * /booked-appointments/{appointmentId}:
+ *   put:
+ *     summary: Update a booked appointment
+ *     tags: [Booked Appointments]
+ *     parameters:
+ *       - in: path
+ *         name: appointmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Appointment'
+ *     responses:
+ *       200:
+ *         description: Updated successfully
  */
 router.put('/:appointmentId', async (req, res) => {
   try {
@@ -222,8 +279,20 @@ router.put('/:appointmentId', async (req, res) => {
 });
 
 /**
- * Cancel a booked appointment
- * DELETE /api/booked-appointments/:appointmentId
+ * @swagger
+ * /booked-appointments/{appointmentId}:
+ *   delete:
+ *     summary: Cancel a booked appointment
+ *     tags: [Booked Appointments]
+ *     parameters:
+ *       - in: path
+ *         name: appointmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Cancelled successfully
  */
 router.delete('/:appointmentId', async (req, res) => {
   try {
@@ -246,6 +315,13 @@ router.delete('/:appointmentId', async (req, res) => {
       });
     }
 
+    // Release availability slot if it exists
+    const DoctorAvailability = require('../models/DoctorAvailability');
+    await DoctorAvailability.findOneAndUpdate(
+      { appointmentId: appointmentId },
+      { $set: { isBooked: false, appointmentId: null } }
+    );
+
     logger.info(`Cancelled booked appointment: ${appointmentId}`);
 
     res.json({
@@ -267,8 +343,20 @@ router.delete('/:appointmentId', async (req, res) => {
 });
 
 /**
- * Mark appointment as completed
- * POST /api/booked-appointments/:appointmentId/complete
+ * @swagger
+ * /booked-appointments/{appointmentId}/complete:
+ *   post:
+ *     summary: Mark appointment as completed
+ *     tags: [Booked Appointments]
+ *     parameters:
+ *       - in: path
+ *         name: appointmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Marked as completed
  */
 router.post('/:appointmentId/complete', async (req, res) => {
   try {

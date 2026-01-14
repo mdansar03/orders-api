@@ -18,6 +18,9 @@ const hospitalsRoutes = require('./routes/hospitals');
 const doctorsRoutes = require('./routes/doctors');
 const appointmentsRoutes = require('./routes/appointments');
 const bookedAppointmentsRoutes = require('./routes/booked-appointments');
+const patientsRoutes = require('./routes/patients');
+const doctorSchedulesRoutes = require('./routes/doctor-schedules');
+const doctorAvailabilitiesRoutes = require('./routes/doctor-availabilities');
 
 const app = express();
 const PORT = process.env.PORT || 3008;
@@ -71,6 +74,9 @@ app.use('/api/hospitals', hospitalsRoutes);
 app.use('/api/doctors', doctorsRoutes);
 app.use('/api/appointments', appointmentsRoutes);
 app.use('/api/booked-appointments', bookedAppointmentsRoutes);
+app.use('/api/patients', patientsRoutes);
+app.use('/api/doctor-schedules', doctorSchedulesRoutes);
+app.use('/api/doctor-availabilities', doctorAvailabilitiesRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -147,7 +153,13 @@ app.get('/', (req, res) => {
         'GET /api/booked-appointments/user/{userId} - Get appointments by user',
         'PUT /api/booked-appointments/{appointmentId} - Update booked appointment',
         'DELETE /api/booked-appointments/{appointmentId} - Cancel booked appointment',
-        'POST /api/booked-appointments/{appointmentId}/complete - Mark appointment as completed'
+        'POST /api/booked-appointments/{appointmentId}/complete - Mark appointment as completed',
+        'GET /api/patients - Get all patients (CRUD)',
+        'POST /api/patients - Create new patient',
+        'GET /api/doctor-schedules - Get doctor schedules (CRUD)',
+        'POST /api/doctor-schedules - Create doctor schedule',
+        'GET /api/doctor-availabilities - Get doctor availabilities',
+        'POST /api/doctor-availabilities/generate - Generate slots from schedules'
       ]
     },
     timestamp: new Date().toISOString()
